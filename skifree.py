@@ -11,21 +11,15 @@ import random
 import sys
 import urllib
 
-# TODO 1) prompt user for their name
-# TODO 2) show start button
+# TODO 1) fix disabled text, enter clicks start
+# TODO 2) copy classes to other files
+# TODO 2.5) clean up code and start screen layout
 # TODO 3) save leaderboard
 # TODO 4) make the screen dynamically full size
-# TODO 0) introduce difficulty constant
+# TODO 5) introduce difficulty constant
 
 global start_screen_running
-
-try:
-    if os.environ["USERNAME"]:
-        player = os.environ["USERNAME"]
-    else:
-        player = os.environ["LOGNAME"]
-except KeyError:
-    player = os.environ["LOGNAME"]
+global player
 
 # === CONSTANTS === (UPPER_CASE names)
 
@@ -37,6 +31,8 @@ skier_images = ["images/skier_down.png",
 
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
+GREY = (127, 127, 127)
+LIGHT_GREY = (191, 191, 191)
 
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
@@ -45,21 +41,68 @@ BLUE = (0, 0, 255)
 SCREEN_WIDTH = 1240
 SCREEN_HEIGHT = 600
 
+INPUT_BOX_COLOR_INACTIVE = pygame.Color('lightskyblue3')
+INPUT_BOX_COLOR_ACTIVE = pygame.Color('dodgerblue2')
+
 
 # === CLASSES === (CamelCase names)
 
+class InputBox:
 
-class Button():
-    def __init__(self, text, x=0, y=0, width=100, height=50, command=None):
+    def __init__(self, x, y, w, h, text='', callback=None):
+        self.rect = pygame.Rect(x, y, w, h)
+        self.color = INPUT_BOX_COLOR_INACTIVE
+        self.text = text
+        self.callback = callback
+        self.txt_surface = pygame.font.Font(None, 32).render(text, True, self.color)
+        self.active = False
+
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            # If the user clicked on the input_box rect.
+            self.active = self.rect.collidepoint(event.pos)
+
+            # Change the current color of the input box.
+            self.color = INPUT_BOX_COLOR_ACTIVE if self.active else INPUT_BOX_COLOR_INACTIVE
+        if event.type == pygame.KEYDOWN:
+            if self.active:
+                if event.key == pygame.K_BACKSPACE:
+                    self.text = self.text[:-1]
+                else:
+                    self.text += event.unicode
+                if self.callback:
+                    self.callback(self.text)
+                # Re-render the text.
+                self.txt_surface = pygame.font.Font(None, 32).render(self.text, True, self.color)
+
+    def update(self):
+        # Resize the box if the text is too long.
+        width = max(200, self.txt_surface.get_width() + 10)
+        self.rect.w = width
+
+    def draw(self, screen):
+        # Blit the text.
+        screen.blit(self.txt_surface, (self.rect.x + 5, self.rect.y + 5))
+        # Blit the rect.
+        pygame.draw.rect(screen, self.color, self.rect, 2)
+
+
+class Button:
+
+    def __init__(self, text, x=0, y=0, width=100, height=50, command=None, is_disabled=None):
 
         self.text = text
         self.command = command
+        self.is_disabled = is_disabled
 
         self.image_normal = pygame.Surface((width, height))
         self.image_normal.fill(GREEN)
 
         self.image_hovered = pygame.Surface((width, height))
         self.image_hovered.fill(RED)
+
+        self.image_disabled = pygame.Surface((width, height))
+        self.image_disabled.fill(GREY)
 
         self.image = self.image_normal
         self.rect = self.image.get_rect()
@@ -71,16 +114,18 @@ class Button():
 
         self.image_normal.blit(text_image, text_rect)
         self.image_hovered.blit(text_image, text_rect)
+        self.image_disabled.blit(font.render(text, True, LIGHT_GREY), text_rect)
 
         # you can't use it before `blit`
         self.rect.topleft = (x, y)
 
         self.hovered = False
-        # self.clicked = False
 
     def update(self):
 
-        if self.hovered:
+        if self.is_disabled and self.is_disabled():
+            self.image = self.image_disabled
+        elif self.hovered:
             self.image = self.image_hovered
         else:
             self.image = self.image_normal
@@ -93,13 +138,14 @@ class Button():
 
         global start_screen_running
 
-        if event.type == pygame.MOUSEMOTION:
-            self.hovered = self.rect.collidepoint(event.pos)
-        elif event.type == pygame.MOUSEBUTTONDOWN:
-            if self.hovered:
-                print('Clicked:', self.text)
-                if self.command:
-                    self.command()
+        if not (self.is_disabled and self.is_disabled()):
+            if event.type == pygame.MOUSEMOTION:
+                self.hovered = self.rect.collidepoint(event.pos)
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if self.hovered:
+                    print('Clicked:', self.text)
+                    if self.command:
+                        self.command()
 
 
 class SkierClass(pygame.sprite.Sprite):
@@ -184,8 +230,70 @@ def main():
     game(clock, screen)
 
 
+def start_screen(clock, screen):
+    global has_quit, start_screen_running, player
+    player = ""
+    font = pygame.font.Font(None, 30)
+    start_button = Button("start", 200, 50, 100, 50, close_start_screen, start_button_disabled)
+    player_input_box = InputBox(100, 100, 100, 32, "", record_player)
+
+    start_screen_running = True
+    while start_screen_running and not has_quit:
+
+        # --- events ---
+
+        for event in pygame.event.get():
+
+            if event.type == pygame.QUIT:
+                has_quit = True
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    has_quit = True
+
+            # --- objects events ---
+
+            start_button.handle_event(event)
+            player_input_box.handle_event(event)
+
+        # --- updates ---
+
+        start_button.update()
+        player_input_box.update()
+
+        # --- draws ---
+
+        screen.fill(WHITE)
+
+        text = font.render("press Esc to exit", True, (0, 0, 0))
+        screen.blit(text, [150, 150])
+
+        start_button.draw(screen)
+        player_input_box.draw(screen)
+
+        pygame.display.update()
+
+        # --- FPS ---
+
+        # clock.tick(25)
+
+
+def record_player(player_name):
+    global player
+    player = player_name
+
+
+def start_button_disabled():
+    global player
+    return len(player) == 0
+
+
+def close_start_screen():
+    global start_screen_running
+    start_screen_running = False
+
+
 def game(clock, screen):
-    global skier, speed, obstacles, score_text, has_quit
+    global skier, speed, obstacles, score_text, has_quit, player
     skier = SkierClass()
     speed = [0, 6]
     obstacles = pygame.sprite.Group()
@@ -252,56 +360,8 @@ def game(clock, screen):
                 hit[0].kill()
 
         obstacles.update()
-        score_text = font.render("Score: " + str(points), 1, (0, 0, 0))
+        score_text = font.render(player + " Score: " + str(points), 1, (0, 0, 0))
         animate()
-
-
-def close_start_screen():
-    global start_screen_running
-    start_screen_running = False
-
-
-def start_screen(clock, screen):
-    global has_quit
-    global start_screen_running
-    font = pygame.font.Font(None, 30)
-    start_button = Button("start", 200, 50, 100, 50, close_start_screen)
-
-    start_screen_running = True
-    while start_screen_running and not has_quit:
-
-        # --- events ---
-
-        for event in pygame.event.get():
-
-            if event.type == pygame.QUIT:
-                has_quit = True
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    has_quit = True
-
-            # --- objects events ---
-
-            start_button.handle_event(event)
-
-        # --- updates ---
-
-        start_button.update()
-
-        # --- draws ---
-
-        screen.fill(WHITE)
-
-        text = font.render("press Esc to exit", True, (0, 0, 0))
-        screen.blit(text, [150, 150])
-
-        start_button.draw(screen)
-
-        pygame.display.update()
-
-        # --- FPS ---
-
-        clock.tick(25)
 
 
 if __name__ == "__main__":
