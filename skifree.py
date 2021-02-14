@@ -11,12 +11,12 @@ import random
 import sys
 import urllib
 
-# TODO 1) fix disabled text, enter clicks start
+# TODO 0) make the screen dynamically full size
+# TODO 1) fix disabled text(check if finished), enter clicks start
 # TODO 2) copy classes to other files
 # TODO 2.5) clean up code and start screen layout
 # TODO 3) save leaderboard
-# TODO 4) make the screen dynamically full size
-# TODO 5) introduce difficulty constant
+# TODO 4) introduce difficulty constant
 
 global start_screen_running
 global player
@@ -38,6 +38,7 @@ RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
 
+INITIAL_GAP = 640
 SCREEN_WIDTH = 1240
 SCREEN_HEIGHT = 600
 
@@ -169,8 +170,8 @@ class SkierClass(pygame.sprite.Sprite):
 
     def move(self, speed):
         self.rect.centerx = self.rect.centerx + speed[0]
-        if self.rect.centerx < 20:  self.rect.centerx = 20
-        if self.rect.centerx > 620: self.rect.centerx = 620
+        if self.rect.left < 0:  self.rect.left = 0
+        if self.rect.right > SCREEN_WIDTH: self.rect.right = SCREEN_WIDTH
 
 
 class ObstacleClass(pygame.sprite.Sprite):
@@ -193,9 +194,9 @@ def create_map():
     global obstacles
     locations = []
     for i in range(10):
-        row = random.randint(0, 9)
-        col = random.randint(0, 9)
-        location = [col * 64 + 20, row * 64 + 20 + 640]
+        x = random.randint(1, 9) * (SCREEN_WIDTH / 10)
+        y = (random.randint(0, 10) * SCREEN_HEIGHT / 10) + INITIAL_GAP
+        location = [x, y]
         if not (location in locations):
             locations.append(location)
             type = random.choice(["tree", "flag"])
