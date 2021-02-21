@@ -11,7 +11,7 @@ import random
 import sys
 import urllib
 
-# TODO 0) make the screen dynamically full size
+# TODO 0) add pause button and make number of columns and rows a constant
 # TODO 1) fix disabled text(check if finished), enter clicks start
 # TODO 2) copy classes to other files
 # TODO 2.5) clean up code and start screen layout
@@ -20,6 +20,7 @@ import urllib
 
 global start_screen_running
 global player
+global screen
 
 # === CONSTANTS === (UPPER_CASE names)
 
@@ -171,7 +172,7 @@ class SkierClass(pygame.sprite.Sprite):
     def move(self, speed):
         self.rect.centerx = self.rect.centerx + speed[0]
         if self.rect.left < 0:  self.rect.left = 0
-        if self.rect.right > SCREEN_WIDTH: self.rect.right = SCREEN_WIDTH
+        if self.rect.right > screen.get_width(): self.rect.right = screen.get_width()
 
 
 class ObstacleClass(pygame.sprite.Sprite):
@@ -190,32 +191,6 @@ class ObstacleClass(pygame.sprite.Sprite):
             self.kill()
 
 
-def create_map():
-    global obstacles
-    locations = []
-    for i in range(10):
-        x = random.randint(1, 9) * (SCREEN_WIDTH / 10)
-        y = (random.randint(0, 10) * SCREEN_HEIGHT / 10) + INITIAL_GAP
-        location = [x, y]
-        if not (location in locations):
-            locations.append(location)
-            type = random.choice(["tree", "flag"])
-            if type == "tree":
-                img = "images/skier_tree.png"
-            elif type == "flag":
-                img = "images/skier_flag.png"
-            obstacle = ObstacleClass(img, location, type)
-            obstacles.add(obstacle)
-
-
-def animate():
-    screen.fill([255, 255, 255])
-    obstacles.draw(screen)
-    screen.blit(skier.image, skier.rect)
-    screen.blit(score_text, [10, 10])
-    pygame.display.flip()
-
-
 def main():
     global screen
     global obstacles
@@ -224,15 +199,15 @@ def main():
     global speed
     global has_quit
     pygame.init()
-    screen = pygame.display.set_mode(size=(SCREEN_WIDTH, SCREEN_HEIGHT))
+    screen = pygame.display.set_mode(size=(SCREEN_WIDTH, SCREEN_HEIGHT), flags=pygame.RESIZABLE | pygame.FULLSCREEN)
     clock = pygame.time.Clock()
     has_quit = False
-    start_screen(clock, screen)
-    game(clock, screen)
+    start_screen()
+    game(clock)
 
 
-def start_screen(clock, screen):
-    global has_quit, start_screen_running, player
+def start_screen():
+    global has_quit, start_screen_running, player, screen
     player = ""
     font = pygame.font.Font(None, 30)
     start_button = Button("start", 200, 50, 100, 50, close_start_screen, start_button_disabled)
@@ -249,7 +224,7 @@ def start_screen(clock, screen):
                 has_quit = True
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    has_quit = True
+                    screen = pygame.display.set_mode(size=(screen.get_width(), screen.get_height()), flags=pygame.RESIZABLE)
 
             # --- objects events ---
 
@@ -293,8 +268,8 @@ def close_start_screen():
     start_screen_running = False
 
 
-def game(clock, screen):
-    global skier, speed, obstacles, score_text, has_quit, player
+def game(clock):
+    global skier, speed, obstacles, score_text, has_quit, player, screen
     skier = SkierClass()
     speed = [0, 6]
     obstacles = pygame.sprite.Group()
@@ -311,7 +286,7 @@ def game(clock, screen):
                 has_quit = True
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    has_quit = True
+                    screen = pygame.display.set_mode(size=(screen.get_width(), screen.get_height()), flags=pygame.RESIZABLE)
                 elif event.key == pygame.K_LEFT:
                     speed = skier.turn(-1)
                 elif event.key == pygame.K_RIGHT:
@@ -363,6 +338,32 @@ def game(clock, screen):
         obstacles.update()
         score_text = font.render(player + " Score: " + str(points), 1, (0, 0, 0))
         animate()
+
+
+def create_map():
+    global obstacles, screen
+    locations = []
+    for i in range(10):
+        x = random.randint(1, 39) * (screen.get_width() / 40)
+        y = (random.randint(0, 40) * screen.get_height() / 40) + INITIAL_GAP
+        location = [x, y]
+        if not (location in locations):
+            locations.append(location)
+            type = random.choice(["tree", "flag"])
+            if type == "tree":
+                img = "images/skier_tree.png"
+            elif type == "flag":
+                img = "images/skier_flag.png"
+            obstacle = ObstacleClass(img, location, type)
+            obstacles.add(obstacle)
+
+
+def animate():
+    screen.fill([255, 255, 255])
+    obstacles.draw(screen)
+    screen.blit(skier.image, skier.rect)
+    screen.blit(score_text, [10, 10])
+    pygame.display.flip()
 
 
 if __name__ == "__main__":
