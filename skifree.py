@@ -11,12 +11,11 @@ import random
 import sys
 import urllib
 
-# TODO 0) add pause button and allow skier to stop or speed up and slow down
-# TODO 1) fix disabled text(check if finished), enter clicks start
+# TODO 1) remove all/most global variables
 # TODO 2) copy classes to other files
-# TODO 2.5) clean up code and start screen layout
-# TODO 3) save leaderboard
-# TODO 4) introduce difficulty constant
+# TODO 3) clean up code and start screen layout
+# TODO 4) save leaderboard
+# TODO 5) introduce difficulty constant
 
 
 global start_screen_running
@@ -170,27 +169,27 @@ class SkierClass(pygame.sprite.Sprite):
         self.image = pygame.image.load(skier_images[self.angle])
         self.rect = self.image.get_rect()
         self.rect.center = center
-        # TODO: pull out as function
-        self.skier_speed = [self.angle, self.downhill_speed - abs(self.angle) * 2]
-        if self.skier_speed[1] < 0: self.skier_speed[1] = 0
+        self.update_speed()
 
     def move(self):
-        self.rect.centerx = self.rect.centerx + self.skier_speed[0]
-        if self.rect.left < 0:  self.rect.left = 0
-        if self.rect.right > screen.get_width(): self.rect.right = screen.get_width()
+        if self.skier_speed[1] > 0:
+            self.rect.centerx = self.rect.centerx + self.skier_speed[0]
+            if self.rect.left < 0:  self.rect.left = 0
+            if self.rect.right > screen.get_width(): self.rect.right = screen.get_width()
 
     def slow_down(self):
         self.downhill_speed -= 3
-        if self.downhill_speed < 0: self.downhill_speed = 0
-        # TODO: pull out as function
-        self.skier_speed = [self.angle, self.downhill_speed - abs(self.angle) * 2]
-        if self.skier_speed[1] < 0: self.skier_speed[1] = 0
+        self.update_speed()
 
     def speed_up(self):
         self.downhill_speed += 3
+        self.update_speed()
+
+    def update_speed(self):
+        if self.downhill_speed < 0: self.downhill_speed = 0
         if self.downhill_speed > 16: self.downhill_speed = 16
-        # TODO: pull out as function
         self.skier_speed = [self.angle, self.downhill_speed - abs(self.angle) * 2]
+        if self.skier_speed[1] < 0: self.skier_speed[1] = 0
 
 
 class ObstacleClass(pygame.sprite.Sprite):
@@ -240,7 +239,8 @@ def start_screen():
                 has_quit = True
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    screen = pygame.display.set_mode(size=(screen.get_width(), screen.get_height()), flags=pygame.RESIZABLE)
+                    screen = pygame.display.set_mode(size=(screen.get_width(), screen.get_height()),
+                                                     flags=pygame.RESIZABLE)
                 elif event.key == pygame.K_RETURN and not player_name_not_entered():
                     close_start_screen()
 
@@ -303,7 +303,8 @@ def game(clock):
                 has_quit = True
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    screen = pygame.display.set_mode(size=(screen.get_width(), screen.get_height()), flags=pygame.RESIZABLE)
+                    screen = pygame.display.set_mode(size=(screen.get_width(), screen.get_height()),
+                                                     flags=pygame.RESIZABLE)
                 elif event.key == pygame.K_LEFT or event.key == pygame.K_a:
                     skier.turn(-1)
                 elif event.key == pygame.K_RIGHT or event.key == pygame.K_d:
@@ -325,40 +326,42 @@ def game(clock):
             if hit[0].type == "tree":
                 skier.image = pygame.image.load("images/skier_crash.png")
                 animate(skier)
-                pygame.time.delay(1000)
-                screen.fill([255, 255, 255])
-                game_over = font.render("Game Over!", 1, (0, 0, 0))
-                data = urllib.urlencode(dict(player=player_name, score=points))
-                req = urllib.Request(url="http://www.thefirstmimzy.com/skifree.php", data=data)
-                f = urllib.urlopen(req)
-                scores_page = f.read()
-                scores_rows = scores_page.strip(",").split(",")
-                scores_table = []
-                for row in scores_rows:
-                    scores_table.append(row.split(":"))
-                for i in range(len(scores_table)):
-                    high_player = "{}. {:.<100}".format(i + 1, scores_table[i][0])
-                    high_score = "{}  ".format(scores_table[i][1])
-                    high_player_surf = font.render(high_player, 1, (0, 0, 0))
-                    high_score_surf = font.render(high_score, 1, (0, 0, 0), (255, 255, 255))
-                    screen.blit(high_player_surf, [20, 250 + 50 * i])
-                    screen.blit(high_score_surf, [640 - high_score_surf.get_width(), 250 + 50 * i])
-                table_header = font.render("High Scores:", 1, (0, 0, 0))
-                screen.blit(table_header, [20, 170])
-                screen.blit(score_text, [20, 70])
-                screen.blit(game_over, [20, 20])
-                pygame.display.flip()
-                while True:
-                    clock.tick(20)
-                    for event in pygame.event.get():
-                        if event.type == pygame.QUIT: sys.exit()
+                pygame.time.delay(500)
+                has_quit = True
             elif hit[0].type == "flag":
                 points += 10
                 hit[0].kill()
 
-        obstacles.update(skier.skier_speed)
-        score_text = font.render(player_name + " Score: " + str(points), 1, (0, 0, 0))
-        animate(skier)
+        # TODO find out why if statement is needed
+        if not has_quit:
+            obstacles.update(skier.skier_speed)
+            score_text = font.render(player_name + " Score: " + str(points), 1, (0, 0, 0))
+            animate(skier)
+
+
+def display_high_scores(clock, font, score_text, screen):
+    screen.fill([255, 255, 255])
+    game_over = font.render("Game Over!", 1, (0, 0, 0))
+    scores_table = [
+        ["Andrew", 10],
+        ["James", 100]
+    ]
+    for i in range(len(scores_table)):
+        high_player = "{}. {:.<100}".format(i + 1, scores_table[i][0])
+        high_score = "{}  ".format(scores_table[i][1])
+        high_player_surf = font.render(high_player, 1, (0, 0, 0))
+        high_score_surf = font.render(high_score, 1, (0, 0, 0), (255, 255, 255))
+        screen.blit(high_player_surf, [20, 250 + 50 * i])
+        screen.blit(high_score_surf, [640 - high_score_surf.get_width(), 250 + 50 * i])
+    table_header = font.render("High Scores:", 1, (0, 0, 0))
+    screen.blit(table_header, [20, 170])
+    screen.blit(score_text, [20, 70])
+    screen.blit(game_over, [20, 20])
+    pygame.display.flip()
+    while True:
+        clock.tick(20)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT: sys.exit()
 
 
 def create_map():
