@@ -5,11 +5,10 @@
 # http://www.manning-source.com/books/sande/All_Files_By_Chapter/hw_ch10_code/skiing_game.py
 # Released under the MIT license http://www.opensource.org/licenses/mit-license.php
 
-import os
-import pygame
 import random
 import sys
-import urllib
+
+import pygame
 
 # TODO 1) investigate full-screen behaviour and fix problem
 # TODO 2) remove all/most global variables
@@ -19,8 +18,9 @@ import urllib
 # TODO 6) introduce difficulty constant
 
 
-global start_screen_running
+global start_screen_displayed
 global player_name
+global obstacles
 
 # === CONSTANTS === (UPPER_CASE names)
 
@@ -40,8 +40,6 @@ GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
 
 INITIAL_GAP = 640
-SCREEN_WIDTH = 1240
-SCREEN_HEIGHT = 600
 COLS_AND_ROWS = 30
 
 INPUT_BOX_COLOR_INACTIVE = pygame.Color('lightskyblue3')
@@ -144,12 +142,12 @@ class Button:
                 self.hovered = self.rect.collidepoint(event.pos)
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if self.hovered:
-                    print('Clicked:', self.text)
                     if self.command:
                         self.command()
 
 
 class SkierClass(pygame.sprite.Sprite):
+
     def __init__(self, screen):
         self.screen_width = screen.get_width
         pygame.sprite.Sprite.__init__(self)
@@ -186,20 +184,21 @@ class SkierClass(pygame.sprite.Sprite):
 
     def update_speed(self):
         if self.downhill_speed < 0: self.downhill_speed = 0
-        if self.downhill_speed > 16: self.downhill_speed = 16
-        self.skier_speed = [self.angle, self.downhill_speed - abs(self.angle) * 2]
+        if self.downhill_speed > 32: self.downhill_speed = 32
+        self.skier_speed = [self.angle * self.downhill_speed / 6, self.downhill_speed - abs(self.angle) * 2]
         if self.skier_speed[1] < 0: self.skier_speed[1] = 0
 
 
 class ObstacleClass(pygame.sprite.Sprite):
-    def __init__(self, image_file, location, type):
+
+    def __init__(self, image_file, location, obstacle_type):
         pygame.sprite.Sprite.__init__(self)
         self.image_file = image_file
         self.image = pygame.image.load(image_file)
         self.location = location
         self.rect = self.image.get_rect()
         self.rect.center = location
-        self.type = type
+        self.type = obstacle_type
 
     def update(self, skier_speed):
         self.rect.centery -= skier_speed[1]
@@ -209,34 +208,34 @@ class ObstacleClass(pygame.sprite.Sprite):
 
 def main():
     global obstacles
-    global score_text
-    global has_quit
     pygame.init()
-    #screen = pygame.display.set_mode(size=(SCREEN_WIDTH, SCREEN_HEIGHT), flags=pygame.RESIZABLE | pygame.FULLSCREEN)
-    screen = pygame.display.set_mode(size=(SCREEN_WIDTH, SCREEN_HEIGHT), flags=pygame.RESIZABLE | pygame.DOUBLEBUF)
-    pygame.display.toggle_fullscreen()
+    display_info = pygame.display.Info()
+    screen = pygame.display.set_mode(
+        size=(int(display_info.current_w * .75), int(display_info.current_h * .75)),
+        flags=pygame.RESIZABLE | pygame.DOUBLEBUF | pygame.HWSURFACE
+    )
     clock = pygame.time.Clock()
-    has_quit = False
-    start_screen(screen)
-    game(clock, screen)
+    if start_screen(screen):
+        game(clock, screen)
 
 
 def start_screen(screen):
-    global has_quit, start_screen_running, player_name
+    global start_screen_displayed
+    global player_name
     player_name = ""
     font = pygame.font.Font(None, 30)
     start_button = Button("start", 200, 50, 100, 50, close_start_screen, player_name_not_entered)
     player_input_box = InputBox(100, 100, 100, 32, "", record_player)
 
-    start_screen_running = True
-    while start_screen_running and not has_quit:
+    start_screen_displayed = True
+    while start_screen_displayed:
 
         # --- events ---
 
         for event in pygame.event.get():
 
             if event.type == pygame.QUIT:
-                has_quit = True
+                return False
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     screen = pygame.display.set_mode(size=(screen.get_width(), screen.get_height()),
@@ -266,9 +265,7 @@ def start_screen(screen):
 
         pygame.display.update()
 
-        # --- FPS ---
-
-        # clock.tick(25)
+    return True
 
 
 def record_player(name):
@@ -282,25 +279,25 @@ def player_name_not_entered():
 
 
 def close_start_screen():
-    global start_screen_running
-    start_screen_running = False
+    global start_screen_displayed
+    start_screen_displayed = False
 
 
 def game(clock, screen):
-    global obstacles, score_text, has_quit, player_name
+    global player_name
+    global obstacles
     skier = SkierClass(screen)
     obstacles = pygame.sprite.Group()
     map_position = 0
-    points = 0
+    score = 0
     create_map(screen)
-    font = pygame.font.Font(None, 30)
 
-    running = True
-    while running and not has_quit:
+    game_running = True
+    while game_running:
         clock.tick(30)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                has_quit = True
+                return False
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     screen = pygame.display.set_mode(size=(screen.get_width(), screen.get_height()),
@@ -325,21 +322,42 @@ def game(clock, screen):
         if hit:
             if hit[0].type == "tree":
                 skier.image = pygame.image.load("images/skier_crash.png")
-                animate(skier, screen)
+                animate(skier, screen, score)
                 pygame.time.delay(500)
-                has_quit = True
+                return False
             elif hit[0].type == "flag":
-                points += 10
+                score += 10
                 hit[0].kill()
 
-        # TODO find out why if statement is needed
-        if not has_quit:
-            obstacles.update(skier.skier_speed)
-            score_text = font.render(player_name + " Score: " + str(points), 1, (0, 0, 0))
-            animate(skier, screen)
+        obstacles.update(skier.skier_speed)
+        animate(skier, screen, score)
 
 
-def display_high_scores(clock, font, score_text, screen):
+def create_map(screen):
+    global obstacles
+    locations = []
+    for i in range(int(pygame.display.Info().current_w/70)):
+        x = random.randint(1, COLS_AND_ROWS - 1) * (screen.get_width() / COLS_AND_ROWS)
+        y = (random.randint(0, COLS_AND_ROWS) * screen.get_height() / COLS_AND_ROWS) + INITIAL_GAP
+        location = [x, y]
+        if not (location in locations):
+            locations.append(location)
+            if random.choice(["tree", "flag"]) == "tree":
+                obstacles.add(ObstacleClass("images/skier_tree.png", location, "tree"))
+            else:
+                obstacles.add(ObstacleClass("images/skier_flag.png", location, "flag"))
+
+
+def animate(skier, screen, score):
+    font = pygame.font.Font(None, 30)
+    screen.fill([255, 255, 255])
+    obstacles.draw(screen)
+    screen.blit(skier.image, skier.rect)
+    screen.blit(font.render(player_name + " Score: " + str(score), True, (0, 0, 0)), [10, 10])
+    pygame.display.flip()
+
+
+def display_high_scores(clock, font, screen, score):
     screen.fill([255, 255, 255])
     game_over = font.render("Game Over!", 1, (0, 0, 0))
     scores_table = [
@@ -355,39 +373,13 @@ def display_high_scores(clock, font, score_text, screen):
         screen.blit(high_score_surf, [640 - high_score_surf.get_width(), 250 + 50 * i])
     table_header = font.render("High Scores:", 1, (0, 0, 0))
     screen.blit(table_header, [20, 170])
-    screen.blit(score_text, [20, 70])
+    screen.blit(font.render(player_name + " Score: " + str(score), True, (0, 0, 0)), [20, 70])
     screen.blit(game_over, [20, 20])
     pygame.display.flip()
     while True:
         clock.tick(20)
         for event in pygame.event.get():
             if event.type == pygame.QUIT: sys.exit()
-
-
-def create_map(screen):
-    global obstacles
-    locations = []
-    for i in range(10):
-        x = random.randint(1, COLS_AND_ROWS - 1) * (screen.get_width() / COLS_AND_ROWS)
-        y = (random.randint(0, COLS_AND_ROWS) * screen.get_height() / COLS_AND_ROWS) + INITIAL_GAP
-        location = [x, y]
-        if not (location in locations):
-            locations.append(location)
-            type = random.choice(["tree", "flag"])
-            if type == "tree":
-                img = "images/skier_tree.png"
-            elif type == "flag":
-                img = "images/skier_flag.png"
-            obstacle = ObstacleClass(img, location, type)
-            obstacles.add(obstacle)
-
-
-def animate(skier, screen):
-    screen.fill([255, 255, 255])
-    obstacles.draw(screen)
-    screen.blit(skier.image, skier.rect)
-    screen.blit(score_text, [10, 10])
-    pygame.display.flip()
 
 
 if __name__ == "__main__":
