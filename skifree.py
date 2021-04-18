@@ -10,12 +10,14 @@ import sys
 
 import pygame
 
-# TODO 1) investigate full-screen behaviour and fix problem
+# TODO 0) fix esc problem
+# TODO 1) make esc in game go to start screen and make message to say appear when player stops moving
 # TODO 2) remove all/most global variables
 # TODO 3) copy classes to other files
-# TODO 4) clean up code and start screen layout
-# TODO 5) save leaderboard
-# TODO 6) introduce difficulty constant
+# TODO 4) make the map rendering relative to screen size to make tree density even on bigger screens
+# TODO 5) clean up code and start screen layout
+# TODO 6) display on start screen last score and leader board
+# TODO 7) introduce difficulty constant
 
 
 global start_screen_displayed
@@ -214,12 +216,10 @@ def main():
         size=(int(display_info.current_w * .75), int(display_info.current_h * .75)),
         flags=pygame.RESIZABLE | pygame.DOUBLEBUF | pygame.HWSURFACE
     )
-    clock = pygame.time.Clock()
-    if start_screen(screen):
-        game(clock, screen)
+    start_screen(pygame.time.Clock(), screen)
 
 
-def start_screen(screen):
+def start_screen(clock, screen):
     global start_screen_displayed
     global player_name
     player_name = ""
@@ -235,11 +235,10 @@ def start_screen(screen):
         for event in pygame.event.get():
 
             if event.type == pygame.QUIT:
-                return False
+                return
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    screen = pygame.display.set_mode(size=(screen.get_width(), screen.get_height()),
-                                                     flags=pygame.RESIZABLE)
+                    return
                 elif event.key == pygame.K_RETURN and not player_name_not_entered():
                     close_start_screen()
 
@@ -265,7 +264,7 @@ def start_screen(screen):
 
         pygame.display.update()
 
-    return True
+    game(clock, screen)
 
 
 def record_player(name):
@@ -297,11 +296,11 @@ def game(clock, screen):
         clock.tick(30)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                return False
+                return
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    screen = pygame.display.set_mode(size=(screen.get_width(), screen.get_height()),
-                                                     flags=pygame.RESIZABLE)
+                    start_screen(clock, screen)
+                    break
                 elif event.key == pygame.K_LEFT or event.key == pygame.K_a:
                     skier.turn(-1)
                 elif event.key == pygame.K_RIGHT or event.key == pygame.K_d:
@@ -324,7 +323,7 @@ def game(clock, screen):
                 skier.image = pygame.image.load("images/skier_crash.png")
                 animate(skier, screen, score)
                 pygame.time.delay(500)
-                return False
+                return
             elif hit[0].type == "flag":
                 score += 10
                 hit[0].kill()
