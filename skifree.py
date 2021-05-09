@@ -10,11 +10,10 @@ import pygame
 
 
 # TODO 1) make esc in game go to start screen and make message to say appear when player stops moving
-# TODO 3) copy classes to other files
-# TODO 4) make the map rendering relative to screen size to make tree density even on bigger screens
-# TODO 5) clean up code and start screen layout
-# TODO 6) display on start screen last score and leader board
-# TODO 7) introduce difficulty constant
+# TODO 2) make the map rendering relative to screen size to make tree density even on bigger screens
+# TODO 3) clean up code and start screen layout
+# TODO 4) display on start screen last score and leader board
+# TODO 5) introduce difficulty constant
 
 
 class InputBox:
@@ -187,7 +186,7 @@ class StartScreen:
         self.clock = clock
         self.screen = screen
         self.player_name = ""
-        self.font = pygame.font.Font(None, 30)
+        self.font = pygame.font.Font("seguisym.ttf", 20)
         self.start_button = Button("start", 200, 50, 100, 50, self.launch_game, self.player_name_not_entered)
         self.player_input_box = InputBox(100, 100, 100, 32, "", self.record_player)
 
@@ -220,8 +219,19 @@ class StartScreen:
 
             self.screen.fill((255, 255, 255))
 
-            text = self.font.render("press Esc to exit", True, (0, 0, 0))
-            self.screen.blit(text, [150, 150])
+            text = self.font.render("How to play:", True, (0, 0, 0))
+            instructions_x_position = 500
+            instructions_y_position = 160
+            instructions_line_spacing = 30
+            self.screen.blit(text, [instructions_x_position, instructions_y_position])
+            text = self.font.render("use a/d or ←/→ to turn", True, (0, 0, 0))
+            self.screen.blit(text, [instructions_x_position, instructions_y_position + instructions_line_spacing])
+            text = self.font.render("use w/s or ↑/↓ to control speed", True, (0, 0, 0))
+            self.screen.blit(text, [instructions_x_position, instructions_y_position + 2 * instructions_line_spacing])
+            text = self.font.render("slow down to a stop to pause", True, (0, 0, 0))
+            self.screen.blit(text, [instructions_x_position, instructions_y_position + 3 * instructions_line_spacing])
+            text = self.font.render("use esc to exit", True, (0, 0, 0))
+            self.screen.blit(text, [instructions_x_position, instructions_y_position + 4 * instructions_line_spacing])
 
             self.start_button.draw(self.screen)
             self.player_input_box.draw(self.screen)
