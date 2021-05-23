@@ -14,6 +14,7 @@ import pygame
 # TODO 3) clean up code and start screen layout
 # TODO 4) display on start screen last score and leader board
 # TODO 5) introduce difficulty constant
+# TODO 6) make start screen scale in relation to the display
 
 
 class InputBox:
@@ -187,8 +188,9 @@ class StartScreen:
         self.screen = screen
         self.player_name = ""
         self.font = pygame.font.Font("seguisym.ttf", 20)
-        self.start_button = Button("start", 200, 50, 100, 50, self.launch_game, self.player_name_not_entered)
-        self.player_input_box = InputBox(100, 100, 100, 32, "", self.record_player)
+        self.start_button = Button("start", 780, 441, 100, 50, self.launch_game, self.player_name_not_entered)
+        self.player_input_box = InputBox(500, 450, 100, 32, "", self.record_player)
+        self.current_score = -1
 
     def open(self):
         while True:
@@ -219,27 +221,31 @@ class StartScreen:
 
             self.screen.fill((255, 255, 255))
 
-            text = self.font.render("How to play:", True, (0, 0, 0))
-            instructions_x_position = 500
-            instructions_y_position = 160
+            instructions_x_position = 80
+            instructions_y_position = 370
             instructions_line_spacing = 30
+            text = self.font.render("How to play:", True, (0, 0, 0))
             self.screen.blit(text, [instructions_x_position, instructions_y_position])
-            text = self.font.render("use a/d or ←/→ to turn", True, (0, 0, 0))
+            text = self.font.render(" - use a/d or ←/→ to turn", True, (0, 0, 0))
             self.screen.blit(text, [instructions_x_position, instructions_y_position + instructions_line_spacing])
-            text = self.font.render("use w/s or ↑/↓ to control speed", True, (0, 0, 0))
+            text = self.font.render(" - use w/s or ↑/↓ to control speed", True, (0, 0, 0))
             self.screen.blit(text, [instructions_x_position, instructions_y_position + 2 * instructions_line_spacing])
-            text = self.font.render("slow down to a stop to pause", True, (0, 0, 0))
+            text = self.font.render(" - slow down to a stop to pause", True, (0, 0, 0))
             self.screen.blit(text, [instructions_x_position, instructions_y_position + 3 * instructions_line_spacing])
-            text = self.font.render("use esc to exit", True, (0, 0, 0))
+            text = self.font.render(" - use esc to exit", True, (0, 0, 0))
             self.screen.blit(text, [instructions_x_position, instructions_y_position + 4 * instructions_line_spacing])
 
             self.start_button.draw(self.screen)
             self.player_input_box.draw(self.screen)
 
+            if self.current_score != -1:
+                text = self.font.render("Your score was: " + str(self.current_score), True, (0, 0, 0))
+                self.screen.blit(text, [500, 370])
+
             pygame.display.update()
 
     def launch_game(self):
-        GameScreen(self.clock, self.screen, self.player_name).open()
+        self.current_score = GameScreen(self.clock, self.screen, self.player_name).open()
 
     def record_player(self, name):
         self.player_name = name
@@ -269,7 +275,7 @@ class GameScreen:
             self.clock.tick(30)
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    return
+                    return self.score
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
                         return self.score
