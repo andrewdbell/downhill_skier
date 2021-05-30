@@ -9,7 +9,7 @@ import random
 import pygame
 
 
-# TODO 1) make esc in game go to start screen and make message to say appear when player stops moving
+# TODO 1) make message to say appear when player stops moving
 # TODO 2) make the map rendering relative to screen size to make tree density even on bigger screens
 # TODO 3) clean up code and start screen layout
 # TODO 4) display on start screen last score and leader board
@@ -68,10 +68,10 @@ class Button:
         self.is_disabled = is_disabled
 
         self.image_normal = pygame.Surface((width, height))
-        self.image_normal.fill((0, 255, 0))
+        self.image_normal.fill((0, 153, 0))
 
         self.image_hovered = pygame.Surface((width, height))
-        self.image_hovered.fill((255, 0, 0))
+        self.image_hovered.fill((79, 153, 69))
 
         self.image_disabled = pygame.Surface((width, height))
         self.image_disabled.fill((127, 127, 127))
@@ -120,7 +120,9 @@ class Button:
 class SkierClass(pygame.sprite.Sprite):
 
     def __init__(self, screen):
+        self.screen = screen
         self.screen_width = screen.get_width
+        self.font = pygame.font.Font("seguisym.ttf", 20)
         self.skier_images = ["images/skier_down.png",
                              "images/skier_right1.png",
                              "images/skier_right2.png",
@@ -263,7 +265,8 @@ class GameScreen:
         self.obstacles = pygame.sprite.Group()
         self.map_position = 0
         self.score = 0
-        self.font = pygame.font.Font(None, 30)
+        self.font_size = 30
+        self.font = pygame.font.Font(None, self.font_size)
         self.initial_gap = 640
         self.cols_and_rows = 30
         
@@ -326,7 +329,18 @@ class GameScreen:
         self.screen.fill([255, 255, 255])
         self.obstacles.draw(self.screen)
         self.screen.blit(self.skier.image, self.skier.rect)
-        self.screen.blit(self.font.render(self.player_name + " Score: " + str(self.score), True, (0, 0, 0)), [10, 10])
+        if self.skier.downhill_speed == 0:
+            pause_text_x_position = (pygame.display.Info().current_w / 2) - 150
+            pause_text_y_position = (pygame.display.Info().current_h / 2) - (self.font_size * 3)
+            pause_text_line_spacing = self.font_size
+            text = self.font.render("                    paused:", True, (0, 0, 0))
+            self.screen.blit(text, [pause_text_x_position, pause_text_y_position])
+            text = self.font.render("use esc to return to start screen", True, (0, 0, 0))
+            self.screen.blit(text, [pause_text_x_position, pause_text_y_position + pause_text_line_spacing])
+            text = self.font.render("       your current score is: " + str(self.score), True, (0, 0, 0))
+            self.screen.blit(text, [pause_text_x_position, pause_text_y_position + 2 * pause_text_line_spacing])
+        else:
+            self.screen.blit(self.font.render(self.player_name + " Score: " + str(self.score), True, (0, 0, 0)), [10, 10])
         pygame.display.flip()
 
 
