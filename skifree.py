@@ -9,8 +9,8 @@ import random
 import pygame
 
 
-# TODO 1) make message to say appear when player stops moving
-# TODO 2) make the map rendering relative to screen size to make tree density even on bigger screens
+# TODO 1)
+# TODO 2) make the map rendering relative to screen size to make tree density even on bigger screens (scale from andrews laptop: height 720 width 1280)
 # TODO 3) clean up code and start screen layout
 # TODO 4) display on start screen last score and leader board
 # TODO 5) introduce difficulty constant
@@ -185,9 +185,15 @@ class ObstacleClass(pygame.sprite.Sprite):
 
 
 class StartScreen:
-    def __init__(self, clock, screen):
-        self.clock = clock
-        self.screen = screen
+    def __init__(self):
+        pygame.init()
+        self.display_info = pygame.display.Info()
+        self.screen = pygame.display.set_mode(
+            size=(int(self.display_info.current_w * .75), int(self.display_info.current_h * .75)),
+            flags=pygame.RESIZABLE | pygame.DOUBLEBUF | pygame.HWSURFACE
+        )
+        print("height", self.display_info.current_h, "width", self.display_info.current_w)
+        self.clock = pygame.time.Clock()
         self.player_name = ""
         self.font = pygame.font.Font("seguisym.ttf", 20)
         self.start_button = Button("start", 780, 441, 100, 50, self.launch_game, self.player_name_not_entered)
@@ -345,13 +351,7 @@ class GameScreen:
 
 
 def main():
-    pygame.init()
-    display_info = pygame.display.Info()
-    screen = pygame.display.set_mode(
-        size=(int(display_info.current_w * .75), int(display_info.current_h * .75)),
-        flags=pygame.RESIZABLE | pygame.DOUBLEBUF | pygame.HWSURFACE
-    )
-    StartScreen(pygame.time.Clock(), screen).open()
+    StartScreen().open()
 
 
 if __name__ == "__main__":
