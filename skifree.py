@@ -9,7 +9,7 @@ import random
 import pygame
 
 
-# TODO 1)
+# TODO 1) make screen not resizable, investigate screen resizability and options
 # TODO 2) make the map rendering relative to screen size to make tree density even on bigger screens (scale from andrews laptop: height 720 width 1280)
 # TODO 3) clean up code and start screen layout
 # TODO 4) display on start screen last score and leader board
@@ -133,7 +133,7 @@ class SkierClass(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.center = [320, 100]
         self.angle = 0
-        self.downhill_speed = 6
+        self.downhill_speed = 0
         self.skier_speed = [0, self.downhill_speed]
 
     def turn(self, direction):
@@ -190,15 +190,21 @@ class StartScreen:
         self.display_info = pygame.display.Info()
         self.screen = pygame.display.set_mode(
             size=(int(self.display_info.current_w * .75), int(self.display_info.current_h * .75)),
-            flags=pygame.RESIZABLE | pygame.DOUBLEBUF | pygame.HWSURFACE
+            flags=pygame.DOUBLEBUF | pygame.HWSURFACE
         )
         print("height", self.display_info.current_h, "width", self.display_info.current_w)
         self.clock = pygame.time.Clock()
         self.player_name = ""
         self.font = pygame.font.Font("seguisym.ttf", 20)
-        self.start_button = Button("start", 780, 441, 100, 50, self.launch_game, self.player_name_not_entered)
+        self.start_button = Button("start", self.scale_width(780), self.scale_height(441), self.scale_width(100), self.scale_height(50), self.launch_game, self.player_name_not_entered)
         self.player_input_box = InputBox(500, 450, 100, 32, "", self.record_player)
         self.current_score = -1
+
+    def scale_width(self, width):
+        return width * (self.display_info.current_w / 1280)
+
+    def scale_height(self, height):
+        return height * (self.display_info.current_h / 720)
 
     def open(self):
         while True:
@@ -265,7 +271,11 @@ class StartScreen:
 class GameScreen:
     def __init__(self, clock, screen, player_name):
         self.clock = clock
-        self.screen = screen
+        self.display_info = pygame.display.Info()
+        self.screen = pygame.display.set_mode(
+            size=(int(self.display_info.current_w * .75), int(self.display_info.current_h * .75)),
+            flags=pygame.RESIZABLE | pygame.DOUBLEBUF | pygame.HWSURFACE
+        )
         self.player_name = player_name
         self.skier = SkierClass(screen)
         self.obstacles = pygame.sprite.Group()
@@ -339,12 +349,14 @@ class GameScreen:
             pause_text_x_position = (pygame.display.Info().current_w / 2) - 150
             pause_text_y_position = (pygame.display.Info().current_h / 2) - (self.font_size * 3)
             pause_text_line_spacing = self.font_size
-            text = self.font.render("                    paused:", True, (0, 0, 0))
+            text = self.font.render("                      paused:", True, (0, 0, 0))
             self.screen.blit(text, [pause_text_x_position, pause_text_y_position])
-            text = self.font.render("use esc to return to start screen", True, (0, 0, 0))
+            text = self.font.render("  use esc to return to start screen", True, (0, 0, 0))
             self.screen.blit(text, [pause_text_x_position, pause_text_y_position + pause_text_line_spacing])
-            text = self.font.render("       your current score is: " + str(self.score), True, (0, 0, 0))
+            text = self.font.render("press down arrow or s to continue", True, (0, 0, 0))
             self.screen.blit(text, [pause_text_x_position, pause_text_y_position + 2 * pause_text_line_spacing])
+            text = self.font.render("         your current score is: " + str(self.score), True, (0, 0, 0))
+            self.screen.blit(text, [pause_text_x_position, pause_text_y_position + 3 * pause_text_line_spacing])
         else:
             self.screen.blit(self.font.render(self.player_name + " Score: " + str(self.score), True, (0, 0, 0)), [10, 10])
         pygame.display.flip()
