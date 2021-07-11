@@ -9,12 +9,13 @@ import random
 import pygame
 
 
-# TODO 1) make screen not resizable, investigate screen resizability and options
-# TODO 2) make the map rendering relative to screen size to make tree density even on bigger screens (scale from andrews laptop: height 720 width 1280)
-# TODO 3) clean up code and start screen layout
-# TODO 4) display on start screen last score and leader board
-# TODO 5) introduce difficulty constant
-# TODO 6) make start screen scale in relation to the display
+# TODO 1) make the map rendering relative to screen size to make tree density even on bigger screens (scale from andrews laptop: height 720 width 1280)
+# TODO 2) clean up code and start screen layout
+# TODO 3) display on start screen last score and leader board
+# TODO 4) introduce difficulty constant
+# TODO 5) make start screen scale in relation to the display
+# TODO 6) make player name on start screen have a max width and then scroll
+# TODO 7) make start screen and game screen resizable
 
 
 class InputBox:
@@ -189,24 +190,25 @@ class StartScreen:
         pygame.init()
         self.display_info = pygame.display.Info()
         self.screen = pygame.display.set_mode(
-            size=(int(self.display_info.current_w * .75), int(self.display_info.current_h * .75)),
+            size=(self.display_info.current_w, self.display_info.current_h),
             flags=pygame.DOUBLEBUF | pygame.HWSURFACE
         )
         print("height", self.display_info.current_h, "width", self.display_info.current_w)
+        print("height screen", self.screen.get_height(), "width screen", self.screen.get_width())
         self.clock = pygame.time.Clock()
         self.player_name = ""
-        self.font = pygame.font.Font("seguisym.ttf", 20)
-        self.start_button = Button("start", self.scale_width(780), self.scale_height(441), self.scale_width(100), self.scale_height(50), self.launch_game, self.player_name_not_entered)
-        self.player_input_box = InputBox(500, 450, 100, 32, "", self.record_player)
         self.current_score = -1
 
     def scale_width(self, width):
-        return width * (self.display_info.current_w / 1280)
+        return int(width * (self.screen.get_width() / 1280))
 
     def scale_height(self, height):
-        return height * (self.display_info.current_h / 720)
+        return int(height * (self.screen.get_height() / 720))
 
     def open(self):
+        font = pygame.font.Font("seguisym.ttf", self.scale_height(27))
+        start_button = Button("start", self.scale_width(1040), self.scale_height(588), self.scale_width(133), self.scale_height(67), self.launch_game, self.player_name_not_entered)
+        player_input_box = InputBox(self.scale_width(667), self.scale_height(600), self.scale_width(133), self.scale_height(43), "", self.record_player)
         while True:
 
             # --- events ---
@@ -223,38 +225,38 @@ class StartScreen:
 
                 # --- objects events ---
 
-                self.start_button.handle_event(event)
-                self.player_input_box.handle_event(event)
+                start_button.handle_event(event)
+                player_input_box.handle_event(event)
 
             # --- updates ---
 
-            self.start_button.update()
-            self.player_input_box.update()
+            start_button.update()
+            player_input_box.update()
 
             # --- draws ---
 
             self.screen.fill((255, 255, 255))
 
-            instructions_x_position = 80
-            instructions_y_position = 370
-            instructions_line_spacing = 30
-            text = self.font.render("How to play:", True, (0, 0, 0))
+            instructions_x_position = self.scale_width(107)
+            instructions_y_position = self.scale_height(493)
+            instructions_line_spacing = self.scale_height(40)
+            text = font.render("How to play:", True, (0, 0, 0))
             self.screen.blit(text, [instructions_x_position, instructions_y_position])
-            text = self.font.render(" - use a/d or ←/→ to turn", True, (0, 0, 0))
+            text = font.render(" - use a/d or ←/→ to turn", True, (0, 0, 0))
             self.screen.blit(text, [instructions_x_position, instructions_y_position + instructions_line_spacing])
-            text = self.font.render(" - use w/s or ↑/↓ to control speed", True, (0, 0, 0))
+            text = font.render(" - use w/s or ↑/↓ to control speed", True, (0, 0, 0))
             self.screen.blit(text, [instructions_x_position, instructions_y_position + 2 * instructions_line_spacing])
-            text = self.font.render(" - slow down to a stop to pause", True, (0, 0, 0))
+            text = font.render(" - slow down to a stop to pause", True, (0, 0, 0))
             self.screen.blit(text, [instructions_x_position, instructions_y_position + 3 * instructions_line_spacing])
-            text = self.font.render(" - use esc to exit", True, (0, 0, 0))
+            text = font.render(" - use esc to exit", True, (0, 0, 0))
             self.screen.blit(text, [instructions_x_position, instructions_y_position + 4 * instructions_line_spacing])
 
-            self.start_button.draw(self.screen)
-            self.player_input_box.draw(self.screen)
+            start_button.draw(self.screen)
+            player_input_box.draw(self.screen)
 
             if self.current_score != -1:
-                text = self.font.render("Your score was: " + str(self.current_score), True, (0, 0, 0))
-                self.screen.blit(text, [500, 370])
+                text = font.render("Your score was: " + str(self.current_score), True, (0, 0, 0))
+                self.screen.blit(text, [self.scale_width(667), self.scale_height(493)])
 
             pygame.display.update()
 
@@ -272,12 +274,9 @@ class GameScreen:
     def __init__(self, clock, screen, player_name):
         self.clock = clock
         self.display_info = pygame.display.Info()
-        self.screen = pygame.display.set_mode(
-            size=(int(self.display_info.current_w * .75), int(self.display_info.current_h * .75)),
-            flags=pygame.RESIZABLE | pygame.DOUBLEBUF | pygame.HWSURFACE
-        )
+        self.screen = screen
         self.player_name = player_name
-        self.skier = SkierClass(screen)
+        self.skier = SkierClass(self.screen)
         self.obstacles = pygame.sprite.Group()
         self.map_position = 0
         self.score = 0
