@@ -286,7 +286,7 @@ class GameScreen:
         self.score = 0
         self.font_size = 30
         self.font = pygame.font.Font(None, self.font_size)
-        self.initial_gap = 640
+        self.initial_gap = self.screen.get_height()
         self.cols_and_rows = 30
         
     def open(self):
