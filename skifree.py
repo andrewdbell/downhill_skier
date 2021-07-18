@@ -9,7 +9,7 @@ import random
 import pygame
 
 
-# TODO 1) make the map rendering relative to screen size to make tree density even on bigger screens (scale from andrews laptop: height 720 width 1280)
+# TODO 1) make the icons on the map render relative to screen size and ensure tree density is correct on bigger screens (scale from andrews laptop: height 720 width 1280)
 # TODO 2) clean up code and start screen layout
 # TODO 3) display on start screen last score and leader board
 # TODO 4) introduce difficulty constant
@@ -176,6 +176,7 @@ class ObstacleClass(pygame.sprite.Sprite):
         pygame.sprite.Sprite.__init__(self)
         self.image_file = image_file
         self.image = pygame.image.load(image_file)
+        # TODO: consider scaling as follows: pygame.transform.smoothscale(self.image, (new_width, new_height))
         self.location = location
         self.rect = self.image.get_rect()
         self.rect.center = location
