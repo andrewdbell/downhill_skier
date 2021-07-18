@@ -20,14 +20,17 @@ import pygame
 
 class InputBox:
 
-    def __init__(self, x, y, w, h, text='', callback=None):
-        self.rect = pygame.Rect(x, y, w, h)
+    def __init__(self, left, top, width, height, font, text='', callback=None):
+        self.width = width
+        self.height = height
+        self.rect = pygame.Rect(left, top, width, height)
         self.input_box_color_inactive = pygame.Color('lightskyblue3')
         self.input_box_color_active = pygame.Color('dodgerblue2')
         self.color = self.input_box_color_inactive
+        self.font = font
         self.text = text
         self.callback = callback
-        self.txt_surface = pygame.font.Font(None, 32).render(text, True, self.color)
+        self.txt_surface = self.font.render(text, True, self.color)
         self.active = False
 
     def handle_event(self, event):
@@ -46,23 +49,24 @@ class InputBox:
                 if self.callback:
                     self.callback(self.text)
                 # Re-render the text.
-                self.txt_surface = pygame.font.Font(None, 32).render(self.text, True, self.color)
+                self.txt_surface = self.font.render(self.text, True, self.color)
 
     def update(self):
         # Resize the box if the text is too long.
-        width = max(200, self.txt_surface.get_width() + 10)
+        width = max(self.width, self.txt_surface.get_width() + 10)
         self.rect.w = width
 
     def draw(self, screen):
         # Blit the text.
-        screen.blit(self.txt_surface, (self.rect.x + 5, self.rect.y + 5))
+        screen.blit(self.txt_surface, (self.rect.x + int(self.width / 26), self.rect.y + int(self.height / 8)))
         # Blit the rect.
         pygame.draw.rect(screen, self.color, self.rect, 2)
 
 
 class Button:
 
-    def __init__(self, text, x=0, y=0, width=100, height=50, command=None, is_disabled=None):
+    def __init__(self, text, font, x=0, y=0, width=100, height=50,
+                 command=None, is_disabled=None):
 
         self.text = text
         self.command = command
@@ -79,8 +83,6 @@ class Button:
 
         self.image = self.image_normal
         self.rect = self.image.get_rect()
-
-        font = pygame.font.Font('freesansbold.ttf', 15)
 
         text_image = font.render(text, True, (255, 255, 255))
         text_rect = text_image.get_rect(center=self.rect.center)
@@ -190,7 +192,7 @@ class StartScreen:
         pygame.init()
         self.display_info = pygame.display.Info()
         self.screen = pygame.display.set_mode(
-            size=(self.display_info.current_w, self.display_info.current_h),
+            size=(int(self.display_info.current_w * 1), int(self.display_info.current_h * 1)),
             flags=pygame.DOUBLEBUF | pygame.HWSURFACE
         )
         print("height", self.display_info.current_h, "width", self.display_info.current_w)
@@ -207,8 +209,10 @@ class StartScreen:
 
     def open(self):
         font = pygame.font.Font("seguisym.ttf", self.scale_height(27))
-        start_button = Button("start", self.scale_width(1040), self.scale_height(588), self.scale_width(133), self.scale_height(67), self.launch_game, self.player_name_not_entered)
-        player_input_box = InputBox(self.scale_width(667), self.scale_height(600), self.scale_width(133), self.scale_height(43), "", self.record_player)
+        start_button = Button("start", pygame.font.Font('freesansbold.ttf', self.scale_height(15)), self.scale_width(1040), self.scale_height(588), self.scale_width(133),
+                              self.scale_height(67), self.launch_game,
+                              self.player_name_not_entered)
+        player_input_box = InputBox(self.scale_width(667), self.scale_height(600), self.scale_width(133), self.scale_height(43), pygame.font.Font(None, self.scale_height(40)), "", self.record_player)
         while True:
 
             # --- events ---
