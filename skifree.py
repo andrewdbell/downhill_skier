@@ -122,8 +122,10 @@ class Button:
 
 class SkierClass(pygame.sprite.Sprite):
 
-    def __init__(self, screen):
+    def __init__(self, screen, scale_width, scale_height):
         self.screen = screen
+        self.scale_width = scale_width
+        self.scale_height = scale_height
         self.screen_width = screen.get_width
         self.font = pygame.font.Font("seguisym.ttf", 20)
         self.skier_images = ["images/skier_down.png",
@@ -132,19 +134,23 @@ class SkierClass(pygame.sprite.Sprite):
                              "images/skier_left2.png",
                              "images/skier_left1.png"]
         pygame.sprite.Sprite.__init__(self)
-        self.image = pygame.image.load("images/skier_down.png")
+        self.update_image("images/skier_down.png")
         self.rect = self.image.get_rect()
-        self.rect.center = [320, 100]
+        self.rect.center = [(pygame.display.Info().current_w / 2), (pygame.display.Info().current_h / 2) - 5 * self.scale_height(30)]
         self.angle = 0
         self.downhill_speed = 0
         self.skier_speed = [0, self.downhill_speed]
+
+    def update_image(self, filename):
+        self.image = pygame.image.load(filename)
+        self.image = pygame.transform.smoothscale(self.image, (self.scale_width(self.image.get_rect().width), self.scale_height(self.image.get_rect().height)))
 
     def turn(self, direction):
         self.angle = self.angle + direction
         if self.angle < -2: self.angle = -2
         if self.angle > 2: self.angle = 2
         center = self.rect.center
-        self.image = pygame.image.load(self.skier_images[self.angle])
+        self.update_image(self.skier_images[self.angle])
         self.rect = self.image.get_rect()
         self.rect.center = center
         self.update_speed()
@@ -172,11 +178,11 @@ class SkierClass(pygame.sprite.Sprite):
 
 class ObstacleClass(pygame.sprite.Sprite):
 
-    def __init__(self, image_file, location, obstacle_type):
+    def __init__(self, image_file, location, obstacle_type, scale_width, scale_height):
         pygame.sprite.Sprite.__init__(self)
         self.image_file = image_file
         self.image = pygame.image.load(image_file)
-        # TODO: consider scaling as follows: pygame.transform.smoothscale(self.image, (new_width, new_height))
+        self.image = pygame.transform.smoothscale(self.image, (scale_width(self.image.get_rect().width), scale_height(self.image.get_rect().height)))
         self.location = location
         self.rect = self.image.get_rect()
         self.rect.center = location
@@ -281,15 +287,21 @@ class GameScreen:
         self.display_info = pygame.display.Info()
         self.screen = screen
         self.player_name = player_name
-        self.skier = SkierClass(self.screen)
+        self.skier = SkierClass(self.screen, self.scale_width, self.scale_height)
         self.obstacles = pygame.sprite.Group()
         self.map_position = 0
         self.score = 0
-        self.font_size = 30
+        self.font_size = self.scale_height(30)
         self.font = pygame.font.Font(None, self.font_size)
         self.initial_gap = self.screen.get_height()
         self.cols_and_rows = 30
-        
+
+    def scale_width(self, width):
+        return int(width * (self.screen.get_width() / 1280))
+
+    def scale_height(self, height):
+        return int(height * (self.screen.get_height() / 720))
+
     def open(self):
 
         self.create_map()
@@ -321,7 +333,7 @@ class GameScreen:
             hit = pygame.sprite.spritecollide(self.skier, self.obstacles, False)
             if hit:
                 if hit[0].type == "tree":
-                    self.skier.image = pygame.image.load("images/skier_crash.png")
+                    self.skier.update_image("images/skier_crash.png")
                     self.animate()
                     pygame.time.delay(500)
                     return self.score
@@ -341,16 +353,17 @@ class GameScreen:
             if not (location in locations):
                 locations.append(location)
                 if random.choice(["tree", "flag"]) == "tree":
-                    self.obstacles.add(ObstacleClass("images/skier_tree.png", location, "tree"))
+                    self.obstacles.add(
+                        ObstacleClass("images/skier_tree.png", location, "tree", self.scale_width, self.scale_height))
                 else:
-                    self.obstacles.add(ObstacleClass("images/skier_flag.png", location, "flag"))
+                    self.obstacles.add(ObstacleClass("images/skier_flag.png", location, "flag", self.scale_width, self.scale_height))
 
     def animate(self):
         self.screen.fill([255, 255, 255])
         self.obstacles.draw(self.screen)
         self.screen.blit(self.skier.image, self.skier.rect)
         if self.skier.downhill_speed == 0:
-            pause_text_x_position = (pygame.display.Info().current_w / 2) - 150
+            pause_text_x_position = (pygame.display.Info().current_w / 2) - (self.font_size * 5.5)
             pause_text_y_position = (pygame.display.Info().current_h / 2) - (self.font_size * 3)
             pause_text_line_spacing = self.font_size
             text = self.font.render("                      paused:", True, (0, 0, 0))
