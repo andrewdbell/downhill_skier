@@ -9,8 +9,7 @@ import random
 import pygame
 
 
-
-# TODO 1) change randomness of obstacles so they don't bunch
+# TODO 1) ensure always fixed number of trees and flags when map is rendering
 # TODO 2) clean up code and start screen layout
 # TODO 3) display on start screen last score and leader board
 # TODO 4) introduce difficulty constant
@@ -137,14 +136,16 @@ class SkierClass(pygame.sprite.Sprite):
         pygame.sprite.Sprite.__init__(self)
         self.update_image("images/skier_down.png")
         self.rect = self.image.get_rect()
-        self.rect.center = [(pygame.display.Info().current_w / 2), (pygame.display.Info().current_h / 2) - 5 * self.scale_height(30)]
+        self.rect.center = [(pygame.display.Info().current_w / 2),
+                            (pygame.display.Info().current_h / 2) - 5 * self.scale_height(30)]
         self.angle = 0
         self.downhill_speed = 0
         self.skier_speed = [0, self.downhill_speed]
 
     def update_image(self, filename):
         self.image = pygame.image.load(filename)
-        self.image = pygame.transform.smoothscale(self.image, (self.scale_width(self.image.get_rect().width), self.scale_height(self.image.get_rect().height)))
+        self.image = pygame.transform.smoothscale(self.image, (
+        self.scale_width(self.image.get_rect().width), self.scale_height(self.image.get_rect().height)))
 
     def turn(self, direction):
         self.angle = self.angle + direction
@@ -183,7 +184,8 @@ class ObstacleClass(pygame.sprite.Sprite):
         pygame.sprite.Sprite.__init__(self)
         self.image_file = image_file
         self.image = pygame.image.load(image_file)
-        self.image = pygame.transform.smoothscale(self.image, (scale_width(self.image.get_rect().width), scale_height(self.image.get_rect().height)))
+        self.image = pygame.transform.smoothscale(self.image, (
+        scale_width(self.image.get_rect().width), scale_height(self.image.get_rect().height)))
         self.location = location
         self.rect = self.image.get_rect()
         self.rect.center = location
@@ -215,10 +217,13 @@ class StartScreen:
 
     def open(self):
         font = pygame.font.Font("seguisym.ttf", self.scale_height(27))
-        start_button = Button("start", pygame.font.Font('freesansbold.ttf', self.scale_height(15)), self.scale_width(1040), self.scale_height(538), self.scale_width(133),
+        start_button = Button("start", pygame.font.Font('freesansbold.ttf', self.scale_height(15)),
+                              self.scale_width(1040), self.scale_height(538), self.scale_width(133),
                               self.scale_height(67), self.launch_game,
                               self.player_name_not_entered)
-        player_input_box = InputBox(self.scale_width(667), self.scale_height(550), self.scale_width(133), self.scale_height(43), pygame.font.Font(None, self.scale_height(40)), "", self.record_player)
+        player_input_box = InputBox(self.scale_width(667), self.scale_height(550), self.scale_width(133),
+                                    self.scale_height(43), pygame.font.Font(None, self.scale_height(40)), "",
+                                    self.record_player)
         while True:
 
             # --- events ---
@@ -345,17 +350,29 @@ class GameScreen:
 
     def create_map(self):
         locations = []
+        buffer = self.scale_width(150)
         for i in range(int(pygame.display.Info().current_w / 70)):
             x = random.randint(1, self.cols_and_rows - 1) * (self.screen.get_width() / self.cols_and_rows)
-            y = (random.randint(0, self.cols_and_rows) * self.screen.get_height() / self.cols_and_rows) + self.initial_gap
-            location = [x, y]
-            if not (location in locations):
-                locations.append(location)
+            y = (random.randint(0,
+                                self.cols_and_rows) * self.screen.get_height() / self.cols_and_rows) + self.initial_gap
+            current_location = [x, y]
+            overlaps_existing_location = False
+            for existing_location in locations:
+                if (existing_location[0] - x < buffer and
+                        x - existing_location[0] < buffer and
+                        existing_location[1] - y < buffer and
+                        y - existing_location[1] < buffer):
+                    overlaps_existing_location = True
+            if not overlaps_existing_location:
+                locations.append(current_location)
                 if random.choice(["tree", "flag"]) == "tree":
                     self.obstacles.add(
-                        ObstacleClass("images/skier_tree.png", location, "tree", self.scale_width, self.scale_height))
+                        ObstacleClass("images/skier_tree.png", current_location, "tree", self.scale_width,
+                                      self.scale_height))
                 else:
-                    self.obstacles.add(ObstacleClass("images/skier_flag.png", location, "flag", self.scale_width, self.scale_height))
+                    self.obstacles.add(
+                        ObstacleClass("images/skier_flag.png", current_location, "flag", self.scale_width,
+                                      self.scale_height))
 
     def animate(self):
         self.screen.fill([255, 255, 255])
@@ -374,7 +391,8 @@ class GameScreen:
             text = self.font.render("         your current score is: " + str(self.score), True, (0, 0, 0))
             self.screen.blit(text, [pause_text_x_position, pause_text_y_position + 3 * pause_text_line_spacing])
         else:
-            self.screen.blit(self.font.render(self.player_name + " Score: " + str(self.score), True, (0, 0, 0)), [10, 10])
+            self.screen.blit(self.font.render(self.player_name + " Score: " + str(self.score), True, (0, 0, 0)),
+                             [10, 10])
         pygame.display.flip()
 
 
