@@ -9,7 +9,8 @@ import random
 import pygame
 
 
-# TODO 1) make the icons on the map render relative to screen size and ensure tree density is correct on bigger screens (scale from andrews laptop: height 720 width 1280)
+
+# TODO 1) change randomness of obstacles so they don't bunch
 # TODO 2) clean up code and start screen layout
 # TODO 3) display on start screen last score and leader board
 # TODO 4) introduce difficulty constant
@@ -202,8 +203,6 @@ class StartScreen:
             size=(int(self.display_info.current_w * 1), int(self.display_info.current_h * 1)),
             flags=pygame.DOUBLEBUF | pygame.HWSURFACE
         )
-        print("height", self.display_info.current_h, "width", self.display_info.current_w)
-        print("height screen", self.screen.get_height(), "width screen", self.screen.get_width())
         self.clock = pygame.time.Clock()
         self.player_name = ""
         self.current_score = -1
@@ -216,10 +215,10 @@ class StartScreen:
 
     def open(self):
         font = pygame.font.Font("seguisym.ttf", self.scale_height(27))
-        start_button = Button("start", pygame.font.Font('freesansbold.ttf', self.scale_height(15)), self.scale_width(1040), self.scale_height(588), self.scale_width(133),
+        start_button = Button("start", pygame.font.Font('freesansbold.ttf', self.scale_height(15)), self.scale_width(1040), self.scale_height(538), self.scale_width(133),
                               self.scale_height(67), self.launch_game,
                               self.player_name_not_entered)
-        player_input_box = InputBox(self.scale_width(667), self.scale_height(600), self.scale_width(133), self.scale_height(43), pygame.font.Font(None, self.scale_height(40)), "", self.record_player)
+        player_input_box = InputBox(self.scale_width(667), self.scale_height(550), self.scale_width(133), self.scale_height(43), pygame.font.Font(None, self.scale_height(40)), "", self.record_player)
         while True:
 
             # --- events ---
@@ -249,7 +248,7 @@ class StartScreen:
             self.screen.fill((255, 255, 255))
 
             instructions_x_position = self.scale_width(107)
-            instructions_y_position = self.scale_height(493)
+            instructions_y_position = self.scale_height(443)
             instructions_line_spacing = self.scale_height(40)
             text = font.render("How to play:", True, (0, 0, 0))
             self.screen.blit(text, [instructions_x_position, instructions_y_position])
